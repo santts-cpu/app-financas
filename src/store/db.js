@@ -5,7 +5,7 @@ export const initialState = () => ({
   cap: { seq: 1, classes: [{ n: 'Reserva', meta: 0, fora: true }], items: [] },
   bar: ['inicio', 'lanc', 'contas', 'plano', 'capital'],
   home: ['saldo', 'pend', 'contas', 'cartoes', 'plano', 'ultimos'],
-  prefs: { hideVals: false, alertOn: true, alertThr: 90, alertHide: [], pin: null, lock: null },
+  prefs: { hideVals: false, alertOn: true, alertThr: 90, alertHide: [], pin: null, lock: null, bio: null },
   meta: { version: 1, lastBackup: null, nid: 1 },
 });
 
