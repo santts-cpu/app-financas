@@ -1,0 +1,1 @@
+{"name":"app-financas","version":"0.1.0","type":"module","private":true,"scripts":{"test":"node --test \"test/**/*.test.js\""},"devDependencies":{"fake-indexeddb":"^6.2.8","jsdom":"^31.0.1"}}
