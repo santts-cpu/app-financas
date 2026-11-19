@@ -1,5 +1,5 @@
 // Mude o número da versão sempre que publicar uma atualização.
-const CACHE = 'financas-v8';
+const CACHE = 'financas-v9';
 const FILES = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const FILES = [
   './icons/icon-512.png',
   './src/core/backup.js',
   './src/core/bio.js',
+  './src/core/color.js',
   './src/core/capital.js',
   './src/core/cards.js',
   './src/core/categories.js',
