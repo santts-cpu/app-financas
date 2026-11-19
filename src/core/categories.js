@@ -1,8 +1,8 @@
 import { nextId } from './ledger.js';
 const clone = s => structuredClone(s);
 const has = (s, name) => s.cats.some(c => c.name === name);
-export const isHex = c => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
-const needHex = c => { if (!isHex(c)) throw new Error('Escolha uma cor válida.'); };
+import { isHex, needHex } from './color.js';
+export { isHex };
 
 export function addCat(s, { name, type, color, subs = [] }) {
   if (has(s, name)) throw new Error('Já existe uma categoria com esse nome.');

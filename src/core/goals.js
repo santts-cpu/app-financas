@@ -1,8 +1,10 @@
+import { needHex } from './color.js';
 import { accountView, addTx, addSub, nextId } from './ledger.js';
 
 const same = (a, b) => a.kind === b.kind && a.id === b.id && a.acc === b.acc;
 
 export function addGoal(s, { name, target, dest, deadline = null, color }) {
+  if (color !== undefined) needHex(color);
   if (s.metas.some(g => !g.done && same(g.dest, dest))) throw new Error('Já existe uma meta para o mesmo destino.');
   const r = structuredClone(s); r.metas.push({ id: nextId(r), name, target, dest, deadline, color, done: false }); return r;
 }
@@ -41,6 +43,7 @@ export function contribute(s, goalId, cents, fromAcc, todayIso) {
 export function completeGoal(s, id) { const r = structuredClone(s); r.metas.find(g => g.id === id).done = true; return r; }
 export function reopenGoal(s, id) { const r = structuredClone(s); r.metas.find(g => g.id === id).done = false; return r; }
 export function editGoal(s, id, patch) {
+  if (patch.color !== undefined) needHex(patch.color);
   const g = s.metas.find(x => x.id === id), next = { ...g, ...patch };
   if (patch.dest && s.metas.some(x => x.id !== id && !x.done && same(x.dest, patch.dest))) throw new Error('Já existe uma meta para o mesmo destino.');
   const r = structuredClone(s); Object.assign(r.metas.find(x => x.id === id), next); return r;
@@ -66,6 +69,7 @@ export function goalsTotals(s, todayIso) {
 }
 // Cria um porquinho novo com o nome da meta e liga a meta a ele.
 export function addGoalNewSub(s, accId, { name, target, deadline = null, color }) {
+  if (color !== undefined) needHex(color);
   const withSub = addSub(s, accId, { name, value: 0, color }), sub = withSub.accounts.find(a => a.id === accId).subs.at(-1);
   return addGoal(withSub, { name, target, dest: { kind: 'sub', acc: accId, id: sub.id }, deadline, color });
 }

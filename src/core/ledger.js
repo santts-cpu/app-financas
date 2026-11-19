@@ -1,4 +1,5 @@
 // Estado puro: cada função devolve um novo estado. Saldos são sempre derivados.
+import { needHex } from './color.js';
 const clone = s => structuredClone(s);
 export const nextId = s => s.meta.nid++;
 const acct = (s, id) => { const a = s.accounts.find(x => x.id === id); if (!a) throw new Error('Conta não encontrada'); return a; };
@@ -7,9 +8,11 @@ export function addAccount(s, { name, initial = 0 }) {
   const r = clone(s); r.accounts.push({ id: nextId(r), name, initial, subs: [] }); return r;
 }
 export function addSub(s, accId, { name, value, color }) {
+  if (color !== undefined) needHex(color);
   const r = clone(s); acct(r, accId).subs.push({ id: nextId(r), name, value, ...(color ? { color } : {}) }); return r;
 }
 export function editSub(s, accId, subId, patch) {
+  if (patch.color !== undefined) needHex(patch.color);
   const r = clone(s), sub = acct(r, accId).subs.find(x => x.id === subId);
   Object.assign(sub, patch); return r;
 }
