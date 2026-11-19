@@ -1,4 +1,4 @@
-import { initialState } from '../store/db.js';
+import { initialState, freshState } from '../store/db.js';
 import { fmtDate } from './dates.js';
 
 const APP = 'financas-junior', VERSION = 1;
@@ -67,5 +67,5 @@ export function toCsv(s) {
 
 export function eraseAll(confirmText) {
   if (confirmText !== 'APAGAR') throw new Error('Digite APAGAR para confirmar.');
-  return initialState();
+  return freshState();
 }
