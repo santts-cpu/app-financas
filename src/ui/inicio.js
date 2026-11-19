@@ -33,8 +33,8 @@ const blocks = {
   },
   pend(ctx) {
     const m = monthSummary(ctx.s, ctx.ui.month), n = k => ctx.s.tx.filter(t => t.date.startsWith(ctx.ui.month) && t.status !== 'p' && t.type === k).length;
-    const c = (bg, fg, label, v) => `<button class="btn" data-act="go" data-to="lanc" style="flex:1;background:${bg};color:${fg};border-radius:20px;padding:12px 14px;flex-direction:column;align-items:flex-start;justify-content:flex-start;font:inherit;min-height:0"><span style="font-size:13px">${label}</span><b class="big" style="font-size:20px">${money(v)}</b></button>`;
-    return `<div style="display:flex;gap:10px">${c('#DDF6EA', '#0F6B47', `A receber · ${n('r')}`, m.aReceber)}${c('#FFE3E8', '#5E0F22', `A pagar · ${n('e')}`, m.aPagar)}</div>`;
+    const c = (bg, fg, label, v, t) => `<button class="btn" data-act="openFlow" data-t="${t}" style="flex:1;background:${bg};color:${fg};border-radius:20px;padding:12px 14px;flex-direction:column;align-items:flex-start;justify-content:flex-start;font:inherit;min-height:0"><span style="font-size:13px">${label}</span><b class="big" style="font-size:20px">${money(v)}</b></button>`;
+    return `<div style="display:flex;gap:10px">${c('#DDF6EA', '#0F6B47', `A receber · ${n('r')}`, m.aReceber, 'r')}${c('#FFE3E8', '#5E0F22', `A pagar · ${n('e')}`, m.aPagar, 'e')}</div>`;
   },
   contas(ctx) {
     const { s } = ctx, list = shown(s);
