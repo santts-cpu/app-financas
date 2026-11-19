@@ -1,6 +1,7 @@
 import { ico, esc, money, hm, lab, head, field, readForm, monthStrip, empty, monthLabel, MONTHS } from './components.js';
 import { monthSummary, addTx, editTx, delTx, effectTx } from '../core/ledger.js';
 import { addInstallments, addRepeat, invoiceFor } from '../core/cards.js';
+import { repeatAsAssin } from '../core/subs.js';
 import { addFavorite } from '../core/subs.js';
 import { parseMoney } from '../core/money.js';
 import { listOptions } from '../core/categories.js';
@@ -142,7 +143,7 @@ export const sheets = {
       <button class="sec" data-act="sheetClose" style="border:0">Cancelar</button></div></div>`;
   },
   novoForm(ctx, d) {
-    const { s } = ctx, [, , AC, title, vlabel] = TYPES.find(x => x[0] === d.type), t = d.type, tr = t === 't', isC = t === 'c', exp = t === 'e' || isC;
+    const { s } = ctx, [, , AC, title0, vlabel] = TYPES.find(x => x[0] === d.type), ed = d.edit != null, title = ed ? title0.replace('Nova ', 'Editar ').replace(/^Editar (\w)/, (m, c) => 'Editar ' + c) : title0, t = d.type, tr = t === 't', isC = t === 'c', exp = t === 'e' || isC;
     const accs = s.accounts.map(a => [String(a.id), a.name]), cards = s.cards.map(c => [String(c.id), c.name]);
     const date = d.date || ctx.today, future = !tr && date > ctx.today, other = d.other || (date !== ctx.today && date !== shift(ctx.today, -1));
     const np = isC && d.pc ? Math.max(2, Number(d.parc) || 2) : 1, vtot = parseMoney(d.value || '') || 0;
@@ -164,7 +165,7 @@ export const sheets = {
     const icon = isC ? 'cartoes' : 'bank';
     return `<div class="sheetbg full"><div class="sheet fullp" role="dialog" aria-label="${title}" style="background:#0F1B26;position:relative">
       <div style="background:#0F1B26;color:#fff;padding:14px 16px 22px">
-        <div style="display:flex;align-items:center;gap:4px;margin-left:-8px"><button class="btn" data-act="novoBack" aria-label="Voltar">${ico('back', '#fff')}</button><b style="font-size:20px;font-weight:600">${title}</b></div>
+        <div style="display:flex;align-items:center;gap:4px;margin-left:-8px"><button class="btn" data-act="${ed ? 'sheetClose' : 'novoBack'}" aria-label="Voltar">${ico('back', '#fff')}</button><b style="font-size:20px;font-weight:600">${title}</b></div>
         <div style="font-size:14px;color:#B8C2CC;margin-top:10px">${vlabel}${np > 1 ? ' total' : ''}</div>
         <input id="f_value" class="amt" inputmode="decimal" placeholder="R$ 0,00" value="${esc(d.value || '')}" aria-label="Valor" autocomplete="off">
         <div style="display:flex;gap:8px;overflow-x:auto;padding-top:4px">${[10, 20, 50, 100].map(n => `<button data-act="qv" data-n="${n}" style="white-space:nowrap;min-height:44px;border-radius:22px;border:1px solid rgba(255,255,255,.35);background:transparent;color:#fff;font:inherit;font-size:14px;font-weight:600;padding:0 14px;cursor:pointer">+ ${n}</button>`).join('')}<button data-act="qv" data-n="0" style="white-space:nowrap;min-height:44px;border-radius:22px;border:0;background:transparent;color:${AC};font:inherit;font-size:14px;font-weight:700;padding:0 14px;cursor:pointer">Limpar</button></div>
@@ -174,16 +175,17 @@ export const sheets = {
         ${tr || isC ? '' : row('check', `<span>${exp ? 'Pago' : 'Recebido'}</span>`, sw('pago', pago, exp ? 'Pago' : 'Recebido', future))}
         ${row('cal', `<div style="display:flex;gap:8px;flex-wrap:wrap">${chip(!other && date === ctx.today, 'dtChip', `data-d="${ctx.today}"`, 'Hoje')}${chip(!other && date === shift(ctx.today, -1), 'dtChip', `data-d="${shift(ctx.today, -1)}"`, 'Ontem')}${chip(other, 'dtOther', '', 'Outros…')}</div>`)}
         ${other ? row('cal', `<input id="f_date" class="nin" type="date" ${tr ? `max="${ctx.today}"` : ''} value="${date}" data-change="dtChange" aria-label="Data">`, `<span style="font-size:12px;color:#5B6672;max-width:120px;text-align:right">${future ? 'Futura: fica pendente' : ''}</span>`) : `<input id="f_date" type="hidden" value="${date}">`}
-        ${row('pencil', `<input id="f_desc" class="nin" placeholder="Descrição" value="${esc(d.desc || '')}" aria-label="Descrição" autocomplete="off">`, tr ? '' : `<button class="btn" data-act="tog" data-f="fav" aria-label="Salvar como favorita" aria-pressed="${!!d.fav}">${ico('heart', d.fav ? AC : '#5B6672', 24, 1.8).replace('fill="none"', d.fav ? `fill="${AC}"` : 'fill="none"')}</button>`)}
+        ${row('pencil', `<input id="f_desc" class="nin" placeholder="Descrição" value="${esc(d.desc || '')}" aria-label="Descrição" autocomplete="off">`, tr || ed ? '' : `<button class="btn" data-act="tog" data-f="fav" aria-label="Salvar como favorita" aria-pressed="${!!d.fav}">${ico('heart', d.fav ? AC : '#5B6672', 24, 1.8).replace('fill="none"', d.fav ? `fill="${AC}"` : 'fill="none"')}</button>`)}
         ${tr ? '' : row('bkm', pill('cat', (cats.length ? cats : ['Outros']).map(c => [c, c]), cat), chev)}
         ${tr ? row('bank', pill('from', accs, d.from || accs[0]?.[0]), chev) : isC ? row(icon, pill('card', cards, d.card || cards[0]?.[0]), chev) : row(icon, pill('acc', accs, accId), chev)}
         ${subs && subs.length > 1 ? row('bank', pill('sub', subs, d.sub || ''), chev) : ''}
         ${tr ? `<div style="text-align:center;color:#5B6672;font-size:15px;padding:14px 0 6px;border-bottom:1px solid #E3E8EE">Transferir para<div>${ico('down', '#5B6672', 22)}</div></div>${row('bank', pill('to', accs, d.to || accs[1]?.[0] || accs[0]?.[0]), chev)}` : ''}
         ${isC && due ? row('receipt', `<span>Fatura: ${due}</span>`) : ''}
-        ${isC ? row('repeat', '<span>Parcelado</span>', sw('parc', np > 1, 'Parcelado')) : ''}
+        ${isC && !ed ? row('repeat', '<span>Parcelado</span>', sw('parc', np > 1, 'Parcelado')) : ''}
         ${isC && np > 1 ? row('repeat', pill('parc', [2, 3, 4, 5, 6, 8, 10, 12].map(n => [String(n), n + '×']), String(np), 'parcChange'), chev) : ''}
-        ${np > 1 ? '' : row('pin', `<span>${tr ? 'Transferência fixa' : t === 'r' ? 'Receita fixa' : 'Despesa fixa'}</span>`, sw('fixa', !!d.fixa, 'Repetir todo mês'))}
+        ${np > 1 || ed ? '' : row('pin', `<span>${tr ? 'Transferência fixa' : t === 'r' ? 'Receita fixa' : 'Despesa fixa'}</span>`, sw('fixa', !!d.fixa, 'Repetir todo mês'))}
         ${row('pencil', `<input id="f_obs" class="nin" placeholder="Observação" value="${esc(d.obs || '')}" aria-label="Observação" autocomplete="off">`)}
+        ${ed ? `${d.pago === false ? `<button class="pri" data-act="txEffect" data-id="${d.edit}" style="margin-top:14px">Efetivar</button>` : ''}<button class="sec" data-act="txDel" data-id="${d.edit}" style="margin-top:10px;${d.conf ? 'color:#fff;background:#C2253F;border-color:#C2253F' : 'color:#A11D3A'}">${d.conf ? 'Confirmar exclusão' : 'Excluir lançamento'}</button>` : ''}
       </div>
       <button data-act="novoSave" aria-label="Salvar" style="position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:68px;height:68px;border-radius:34px;border:0;background:${AC};cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 16px rgba(0,0,0,.35)">${ico('check', '#fff', 32, 2.6)}</button>
     </div></div>`;
@@ -241,13 +243,25 @@ export const acts = {
     const cur = ctx.ui.sheet.d, type = cur.type, v = { ...Object.fromEntries(FIELDS.map(id => [id, root.querySelector('#f_' + id)?.value ?? ''])) };
     const value = parseMoney(v.value);
     if (!value || value <= 0) throw new Error('Informe um valor maior que zero.');
-    const date = v.date || ctx.today;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('Informe uma data válida.');
+    const date = v.date;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(date).toISOString().slice(0, 10) !== date) throw new Error('Informe uma data válida.');
     const future = date > ctx.today;
     if (type === 't' && future) throw new Error('Transferência não pode ter data futura.');
     const status = future || cur.pago === false ? 'n' : 'p';
     const base = { value, desc: v.desc || v.cat || (type === 'r' ? 'Receita' : type === 't' ? 'Transferência' : 'Despesa'), date, ...(v.obs ? { note: v.obs } : {}) };
-    const rep = (s, tx) => (cur.fixa && !cur.pc ? addRepeat(s, tx) : addTx(s, tx));
+    if (cur.edit != null) {
+      const old = ctx.s.tx.find(x => x.id === cur.edit);
+      if (!old) throw new Error('Lançamento não encontrado.');
+      const patch = { value, desc: base.desc, date, note: v.obs || undefined };
+      if (type === 't') {
+        const from = Number(v.from || old.from), to = Number(v.to || old.to);
+        if (from === to) throw new Error('Escolha contas diferentes.');
+        Object.assign(patch, { from, to, ...(from !== old.from ? { fromSub: undefined } : {}), ...(to !== old.to ? { toSub: undefined } : {}) });
+      } else if (type === 'c') Object.assign(patch, { card: Number(v.card || old.card), cat: v.cat || old.cat });
+      else Object.assign(patch, { status, cat: v.cat || old.cat, acc: Number(v.acc || old.acc), sub: v.sub ? Number(v.sub) : undefined });
+      ctx.ui.sheet = null; ctx.set(editTx(ctx.s, cur.edit, patch)); return ctx.toast('Lançamento atualizado.');
+    }
+    const rep = (s, tx) => (cur.fixa && !cur.pc ? (tx.type === 'e' && tx.cat === 'Assinaturas' ? repeatAsAssin(s, tx) : addRepeat(s, tx)) : addTx(s, tx));
     let next, fav = null;
     if (type === 't') {
       const from = v.from || String(ctx.s.accounts[0]?.id), to = v.to || String(ctx.s.accounts[1]?.id ?? ctx.s.accounts[0]?.id);
@@ -269,7 +283,12 @@ export const acts = {
     if (cur.fav && fav) next = addFavorite(next, fav);
     ctx.ui.sheet = null; ctx.set(next); ctx.toast('Lançamento salvo.');
   },
-  openTx(ctx, d) { ctx.openSheet('tx', { id: Number(d.id) }); },
+  openTx(ctx, d) {
+    const t = ctx.s.tx.find(x => x.id === Number(d.id)); if (!t) return;
+    if (t.type === 'a' || (t.type === 't' && t.card != null)) return ctx.openSheet('tx', { id: t.id });
+    const type = t.type === 'e' && t.card != null ? 'c' : t.type;
+    ctx.openSheet('novoForm', { edit: t.id, type, value: cents(Math.abs(t.value)), desc: t.desc, date: t.date, other: true, cat: t.cat, acc: t.acc != null ? String(t.acc) : undefined, sub: t.sub != null ? String(t.sub) : undefined, card: t.card != null ? String(t.card) : undefined, from: t.from != null ? String(t.from) : undefined, to: t.to != null ? String(t.to) : undefined, obs: t.note || '', pago: t.status === 'p' });
+  },
   txEffect(ctx, d) { ctx.ui.sheet = null; ctx.set(effectTx(ctx.s, Number(d.id))); },
   txSave(ctx, d, root) {
     const v = readForm(root, [{ id: 'value' }, { id: 'desc' }, { id: 'date' }]), value = parseMoney(v.value);
@@ -278,7 +297,7 @@ export const acts = {
     ctx.ui.sheet = null; ctx.set(editTx(ctx.s, Number(d.id), { value, desc: v.desc, date: v.date }));
   },
   txDel(ctx, d) {
-    if (!ctx.ui.sheet.d.conf) return ctx.openSheet('tx', { ...ctx.ui.sheet.d, conf: true });
+    if (!ctx.ui.sheet.d.conf) return ctx.openSheet(ctx.ui.sheet.k, { ...ctx.ui.sheet.d, conf: true });
     ctx.ui.sheet = null; ctx.set(delTx(ctx.s, Number(d.id)));
   },
 };

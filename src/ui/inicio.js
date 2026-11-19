@@ -40,7 +40,7 @@ const blocks = {
     const { s } = ctx, list = shown(s);
     const rows = list.map(a => {
       const v = accountView(s, a.id), parts = [...v.subs.map((x, i) => ({ v: Math.max(0, x.value), col: GCOL[(i + 1) % GCOL.length] })), { v: Math.max(0, v.livre), col: '#7FE0B5' }];
-      return `<button class="grp btn" data-act="go" data-to="contas" style="width:100%;text-align:left;flex-direction:column;align-items:stretch;gap:6px;padding:12px 0;font:inherit"><div style="display:flex;justify-content:space-between"><b style="font-size:16px">${esc(a.name)}</b><b>${hm(ctx, v.total)}</b></div>${splitBar(parts)}<span style="font-size:12px;color:#4A5A68">Livre ${hm(ctx, v.livre)}${v.subs.length ? ' · ' + v.subs.length + ' subconta' + (v.subs.length > 1 ? 's' : '') : ''}</span></button>`;
+      return `<button class="grp btn" data-act="openAcc" data-acc="${a.id}" style="width:100%;text-align:left;flex-direction:column;align-items:stretch;gap:6px;padding:12px 0;font:inherit"><div style="display:flex;justify-content:space-between"><b style="font-size:16px">${esc(a.name)}</b><b>${hm(ctx, v.total)}</b></div>${splitBar(parts)}<span style="font-size:12px;color:#4A5A68">Livre ${hm(ctx, v.livre)}${v.subs.length ? ' · ' + v.subs.length + ' subconta' + (v.subs.length > 1 ? 's' : '') : ''}</span></button>`;
     }).join('') || empty('Nenhuma conta exibida. Toque em Escolher.');
     const all = list.length === s.accounts.length, tot = list.reduce((n, a) => n + accountView(s, a.id).total, 0);
     return `<div>${lab(titleLink('contas', 'Contas'), `<button class="btn link" data-act="openHomeAcc" style="min-height:44px">Escolher</button>`)}${boxed(rows, strip(all ? 'Total em contas' : 'Total das contas exibidas', hm(ctx, tot)))}</div>`;

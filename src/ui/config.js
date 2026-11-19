@@ -2,6 +2,7 @@ import { ico, esc, head, lab, sw, NAV, BAR_MAX, DEFAULT_BAR, formSheet, readForm
 import { BLOCK_NAMES } from './inicio.js';
 import { makeBackup, parseBackup, restore, markBackup, backupDue, toCsv, eraseAll } from '../core/backup.js';
 import { hasPin, setPin, clearPin } from '../core/lock.js';
+import { bioSupported, registerBio, removeBio } from '../core/bio.js';
 import { initialState, clear } from '../store/db.js';
 import { fmtDate } from '../core/dates.js';
 
@@ -22,7 +23,7 @@ export const screens = {
       ${out.length ? `<div>${lab('<span>Abas</span>')}<div class="card" style="padding:0 16px">${out.map(id => row('go', NAV[id][0], SUBT[id], `data-to="${id}"`)).join('')}</div></div>` : ''}
       <div>${lab('<span>Configurações</span>')}<div class="card" style="padding:0 16px">${row('go', 'Gerenciar início', 'Escolher e ordenar blocos', 'data-to="ginicio"')}${row('go', 'Barra inferior', 'Escolher e ordenar abas', 'data-to="barra"')}</div></div>
       <div>${lab('<span>Dados</span>')}<div class="card" style="padding:0 16px">${row('go', 'Backup e histórico', 'Salvar e restaurar', 'data-to="backup"')}${row('csvExport', 'Exportar CSV', 'Todos os lançamentos')}</div></div>
-      <div>${lab('<span>Segurança</span>')}<div class="card" style="padding:0 16px">${row('pinOpen', hasPin(s) ? 'Trocar ou remover senha' : 'Bloqueio por senha', 'Só esconde a tela; não criptografa os dados')}${row('eraseOpen', 'Apagar todos os dados', 'Não dá para desfazer')}</div></div></div>`;
+      <div>${lab('<span>Segurança</span>')}<div class="card" style="padding:0 16px">${row('pinOpen', hasPin(s) ? 'Trocar ou remover senha' : 'Bloqueio por senha', 'Só esconde a tela; não criptografa os dados')}${hasPin(s) ? row('bioToggle', s.prefs.bio ? 'Entrar com digital: ligado' : 'Entrar com digital', s.prefs.bio ? 'Toque para desligar' : 'Atalho opcional; a senha continua valendo') : ''}${row('eraseOpen', 'Apagar todos os dados', 'Não dá para desfazer')}</div></div></div>`;
   },
   barra(ctx) {
     const { s } = ctx, notIn = TABS.filter(id => !s.bar.includes(id));
@@ -40,6 +41,7 @@ export const screens = {
       ${ctx.persist === false ? '<div style="background:#FFF1CC;border-radius:16px;padding:10px 14px;font-size:13px;color:#5B3F00">O navegador não garantiu o armazenamento permanente. Limpar os dados do navegador apaga o app: faça backup com frequência.</div>' : ''}
       <div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:6px"><b style="font-size:16px">${s.meta.lastBackup ? 'Último backup em ' + fmtDate(s.meta.lastBackup) : 'Nenhum backup ainda'}</b><span style="font-size:13px;color:#4A5A68">${due ? 'Já passou de 7 dias. ' : ''}O Início avisa depois de 7 dias sem backup.</span></div>
       <button class="pri" data-act="backupExport">Salvar backup (.json)</button>
+      ${(s.meta.history || []).length ? `<div>${lab('<span>Histórico · 8 últimos</span>')}<div class="card" style="padding:0 16px">${s.meta.history.map(h => `<div class="row" style="min-height:48px;font-size:15px">${fmtDate(h)} <span style="color:#4A5A68;font-size:13px">${h.slice(11, 16)}</span></div>`).join('')}</div></div>` : ''}
       <label class="sec" style="display:flex;align-items:center;justify-content:center;cursor:pointer;color:#2A3A48;font-size:15px">Importar backup<input id="impfile" type="file" accept=".json,application/json" data-change="backupFile" style="display:none"></label>
       ${p ? `<div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:8px"><b style="font-size:15px">${p.ok ? 'Arquivo válido' : 'Arquivo recusado'}</b>${p.ok ? `<span style="font-size:13px;color:#4A5A68">${p.summary.lancamentos} lançamentos · ${p.summary.subcontas} subcontas · ${p.summary.metas} metas · ${p.summary.assinaturas} assinaturas. Isso substitui tudo que está no app agora.</span><button class="pri" data-act="backupRestore" style="background:#C2253F">Substituir meus dados</button>` : `<span style="font-size:13px;color:#A11D3A">${esc(p.error)}</span>`}</div>` : ''}</div>`;
   },
@@ -72,6 +74,11 @@ export const acts = {
   },
   csvExport(ctx) { download('lancamentos.csv', '﻿' + toCsv(ctx.s), 'text/csv'); },
   pinOpen(ctx) { ctx.openSheet('pin'); },
+  async bioToggle(ctx) {
+    if (ctx.s.prefs.bio) { ctx.set(removeBio(ctx.s)); return ctx.toast('Digital desligada.'); }
+    if (!(await bioSupported())) throw new Error('Este aparelho não oferece digital para o navegador. Use a senha.');
+    const next = await registerBio(ctx.s); ctx.set(next); ctx.toast('Digital ligada.');
+  },
   async pinSave(ctx, d, root) {
     let s = ctx.s; if (hasPin(s)) s = await clearPin(s, root.querySelector('#f_old').value);
     s = await setPin(s, root.querySelector('#f_pin').value); ctx.ui.sheet = null; ctx.set(s); ctx.toast('Senha salva.');

@@ -1,5 +1,5 @@
 import { ico, esc, money, head, lab, monthStrip, monthLabel, formSheet, readForm, sw, empty, GCOL, pct0, MONTHS } from './components.js';
-import { planRows, groupState, copyPlan, setCatGroup, saveLeftover } from '../core/plan.js';
+import { planRows, groupState, copyPlan, setCatGroup, saveLeftover, leftoverRoom } from '../core/plan.js';
 import { parseMoney } from '../core/money.js';
 import { listEditable } from '../core/categories.js';
 import { addMonths } from '../core/dates.js';
@@ -43,13 +43,21 @@ export const screens = {
     if (i < 0) return `${head('Grupo', '', 'plano')}<div class="pad"><div class="card" style="padding:16px">Grupo não encontrado.</div></div>`;
     const r = pr.rows[i], p = s.plans[key], cats = Object.keys(p.catGrp).filter(c => p.catGrp[c] === r.group.id);
     const txs = s.tx.filter(t => t.type === 'e' && t.date.startsWith(key) && cats.includes(t.cat)).sort((a, b) => b.date.localeCompare(a.date));
+    const room = key === ctx.today.slice(0, 7) ? leftoverRoom(s, key, r.group.id) : 0;
     return `${head(esc(r.group.n), monthLabel(key), 'plano')}<div class="pad"><div class="card" style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">${grpBody(r, GCOL[i % GCOL.length], false)}</div>
+      ${room > 0 && s.accounts.length ? `<button class="pri" data-act="sobraOpen" data-id="${r.group.id}">Guardar sobra · ${money(room)}</button>` : ''}
       <div>${lab('<span>Categorias deste grupo</span>')}<div class="card" style="padding:12px 16px;font-size:14px">${cats.map(esc).join(', ') || 'Nenhuma categoria neste grupo.'}</div></div>
       <div>${lab('<span>Lançamentos do grupo</span>')}<div class="card" style="padding:0 14px">${txs.map(t => txRow(s, t)).join('') || empty('Nenhum lançamento.')}</div></div></div>`;
   },
 };
 
+const sobraDest = s => s.accounts.flatMap(a => [...a.subs.map(x => [`sub|${a.id}|${x.id}`, `${a.name} › ${x.name}`]), [`acc|${a.id}`, `${a.name} (conta inteira)`]]);
 export const sheets = {
+  sobra(ctx, d) {
+    const room = leftoverRoom(ctx.s, ctx.ui.month, d.id);
+    return formSheet('Guardar sobra', [{ id: 'value', label: 'Valor', type: 'money', value: (room / 100).toFixed(2).replace('.', ',') }, { id: 'from', label: 'Sai do Livre de', type: 'select', options: ctx.s.accounts.map(a => [a.id, a.name]) }, { id: 'dest', label: 'Guardar em', type: 'select', options: sobraDest(ctx.s) }], 'sobraSave', 'Guardar',
+      `<div style="font-size:13px;color:#4A5A68">É uma transferência, não uma despesa. Dá para guardar até ${money(room)}; o que guardar sai do disponível do grupo. Para desfazer, exclua a transferência no extrato.</div>`);
+  },
   planEdit(ctx) {
     const key = ctx.ui.month, p = ctx.s.plans[key];
     return `<div class="sheetbg"><div class="sheet" role="dialog" aria-label="Editar plano"><h2>Editar plano</h2>
@@ -65,6 +73,15 @@ export const sheets = {
 };
 
 export const acts = {
+  sobraOpen(ctx, d) { ctx.openSheet('sobra', { id: d.id }); },
+  sobraSave(ctx, d, root) {
+    const v = readForm(root, ['value', 'from', 'dest'].map(id => ({ id }))), c = parseMoney(v.value), [k, a, b] = v.dest.split('|');
+    if (!c || c <= 0) throw new Error('Informe um valor maior que zero.');
+    const from = Number(v.from), to = Number(a);
+    if (k === 'acc' && to === from) throw new Error('Escolha uma subconta ou outra conta como destino.');
+    const next = saveLeftover(ctx.s, ctx.ui.month, ctx.ui.sheet.d.id, from, k === 'sub' ? Number(b) : undefined, c, to);
+    ctx.ui.sheet = null; ctx.set(next); ctx.toast('Sobra guardada.');
+  },
   planCopy(ctx, d) { ctx.set(copyPlan(ctx.s, d.from, ctx.ui.month)); },
   planNew(ctx) { const r = structuredClone(ctx.s); r.plans[ctx.ui.month] = { auto: false, renda: 0, groups: [], catGrp: {} }; ctx.set(r); },
   openGrp(ctx, d) { ctx.go('grupo', { id: d.id }); },
