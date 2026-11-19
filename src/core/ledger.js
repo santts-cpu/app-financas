@@ -21,6 +21,19 @@ export function setSubValue(s, accId, subId, desired) {
   const sub = s.accounts.find(a => a.id === accId).subs.find(x => x.id === subId);
   return editSub(s, accId, subId, { value: sub.value + (desired - shown) });
 }
+// Modelo "somado": o valor de uma subconta faz parte do total da conta. Mudar o valor
+// move o total junto (ajustando o saldo inicial, sem criar lançamento) e o Livre não muda.
+const shiftTotal = (s, accId, delta) => { const r = clone(s); acct(r, accId).initial += delta; return r; };
+export function addSubFunded(s, accId, { name, value, color }) {
+  return shiftTotal(addSub(s, accId, { name, value, color }), accId, value);
+}
+export function fundSub(s, accId, subId, desired) {
+  const shown = accountView(s, accId).subs.find(x => x.id === subId).value;
+  return shiftTotal(setSubValue(s, accId, subId, desired), accId, desired - shown);
+}
+export function setLivre(s, accId, desired) {
+  return shiftTotal(s, accId, desired - accountView(s, accId).livre);
+}
 // Excluir: o valor volta ao Livre (a subconta some do cálculo) e os lançamentos dela passam para o Livre.
 export function delSub(s, accId, subId) {
   const r = clone(s), a = acct(r, accId); a.subs = a.subs.filter(x => x.id !== subId);
