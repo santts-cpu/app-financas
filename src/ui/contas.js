@@ -53,7 +53,7 @@ const accOpts = a => [['livre', 'Livre'], ...a.subs.map(x => [x.id, x.name])];
 export const sheets = {
   accNew: () => formSheet('Nova conta', [{ id: 'name', label: 'Nome' }, { id: 'initial', label: 'Saldo inicial', type: 'money', placeholder: '0,00' }], 'accSave', 'Criar conta'),
   subForm(ctx, d) {
-    return formSheet(d.id ? 'Editar subconta' : 'Nova subconta', [{ id: 'name', label: 'Nome', value: d.name }, { id: 'value', label: 'Valor reservado', type: 'money', value: d.value }, { id: 'color', label: 'Cor', type: 'select', value: d.color || COLORS[0][0], options: COLORS }], 'subSave', 'Salvar', d.id ? `<button class="sec" data-act="subDel" style="color:#A11D3A">Excluir subconta</button>` : '');
+    return formSheet(d.id ? 'Editar subconta' : 'Nova subconta', [{ id: 'name', label: 'Nome', value: d.name }, { id: 'value', label: 'Valor reservado', type: 'money', value: d.value }, { id: 'color', label: 'Cor', type: 'color', value: d.color || COLORS[0][0] }], 'subSave', 'Salvar', d.id ? `<button class="sec" data-act="subDel" style="color:#A11D3A">Excluir subconta</button>` : '');
   },
   subDelAsk: (ctx, d) => `<div class="sheet-body" style="padding:20px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:20px">Excluir a subconta ${esc(d.name)}?</h2><div style="font-size:14px;color:#4A5A68">O valor reservado volta para o Livre da conta e os lançamentos dela passam para o Livre. O saldo total não muda.</div><button class="pri" data-act="subDelOk" style="background:#C2253F">Excluir subconta</button><button class="sec" data-act="sheetClose">Cancelar</button></div>`,
   subMove(ctx, d) {

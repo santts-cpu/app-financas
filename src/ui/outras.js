@@ -64,10 +64,10 @@ export const screens = {
 };
 
 export const sheets = {
-  metaNew: ctx => formSheet('Nova meta', [{ id: 'name', label: 'Nome' }, { id: 'target', label: 'Valor alvo', type: 'money' }, { id: 'dest', label: 'Destino', type: 'select', options: [...destOpts(ctx.s), ...ctx.s.accounts.map(a => [`new|${a.id}`, `Criar porquinho novo em ${a.name}`])] }, { id: 'deadline', label: 'Prazo (opcional)', type: 'month' }, { id: 'color', label: 'Cor', type: 'select', options: PALETTE }], 'metaSave', 'Criar meta'),
+  metaNew: ctx => formSheet('Nova meta', [{ id: 'name', label: 'Nome' }, { id: 'target', label: 'Valor alvo', type: 'money' }, { id: 'dest', label: 'Destino', type: 'select', options: [...destOpts(ctx.s), ...ctx.s.accounts.map(a => [`new|${a.id}`, `Criar porquinho novo em ${a.name}`])] }, { id: 'deadline', label: 'Prazo (opcional)', type: 'month' }, { id: 'color', label: 'Cor', type: 'color', value: PALETTE[0][0] }], 'metaSave', 'Criar meta'),
   metaEdit(ctx, d) {
     const m = ctx.s.metas.find(x => x.id === d.id), k = m.dest.kind, dv = k === 'acc' ? `acc|${m.dest.id}` : k === 'livre' ? `livre|${m.dest.acc}` : `sub|${m.dest.acc}|${m.dest.id}`;
-    return formSheet('Editar meta', [{ id: 'name', label: 'Nome', value: m.name }, { id: 'target', label: 'Valor alvo', type: 'money', value: amt(m.target) }, { id: 'dest', label: 'Destino', type: 'select', value: dv, options: destOpts(ctx.s) }, { id: 'deadline', label: 'Prazo (opcional)', type: 'month', value: m.deadline || '' }, { id: 'color', label: 'Cor', type: 'select', value: m.color, options: PALETTE }], 'metaEditSave', 'Salvar');
+    return formSheet('Editar meta', [{ id: 'name', label: 'Nome', value: m.name }, { id: 'target', label: 'Valor alvo', type: 'money', value: amt(m.target) }, { id: 'dest', label: 'Destino', type: 'select', value: dv, options: destOpts(ctx.s) }, { id: 'deadline', label: 'Prazo (opcional)', type: 'month', value: m.deadline || '' }, { id: 'color', label: 'Cor', type: 'color', value: m.color }], 'metaEditSave', 'Salvar');
   },
   metaAport(ctx, d) {
     const m = ctx.s.metas.find(x => x.id === d.id), i = goalInfo(ctx.s, m, ctx.today), sug = i.perMonth || Math.max(0, m.target - i.saved), first = m.dest.kind === 'acc' ? ctx.s.accounts.find(a => a.id !== m.dest.id)?.id : m.dest.acc;
