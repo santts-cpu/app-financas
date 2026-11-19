@@ -47,9 +47,18 @@ export function dismissAlert(s, k) {
   const r = structuredClone(s); if (!r.prefs.alertHide.includes(k)) r.prefs.alertHide.push(k); return r;
 }
 
-export function saveLeftover(s, key, groupId, accId, subId, cents) {
-  const row = planRows(s, key).rows.find(r => r.group.id === groupId);
-  if (cents > row.diff) throw new Error('Só resta o que sobrou do planejado do grupo.');
+// Quanto ainda dá para guardar da sobra do grupo: o que resta do planejado menos o que já foi guardado.
+export function leftoverRoom(s, key, groupId) {
+  const row = planRows(s, key)?.rows.find(r => r.group.id === groupId);
+  if (!row) return 0;
+  const saved = s.tx.filter(t => t.plGrp === groupId && t.plKey === key).reduce((n, t) => n + t.value, 0);
+  return Math.max(0, row.diff - saved);
+}
+
+// Transferência do Livre de accId para uma subconta (ou para outra conta, com toAcc). Não é despesa.
+export function saveLeftover(s, key, groupId, accId, subId, cents, toAcc = accId) {
+  if (!(cents > 0)) throw new Error('Informe um valor maior que zero.');
+  if (cents > leftoverRoom(s, key, groupId)) throw new Error('Só resta o que sobrou do planejado do grupo.');
   if (cents > accountView(s, accId).livre) throw new Error('O Livre da conta não cobre esse valor.');
-  return addTx(s, { type: 't', status: 'p', from: accId, to: accId, toSub: subId, value: cents, desc: 'Sobra do plano', cat: 'Transferência' });
+  return addTx(s, { type: 't', status: 'p', from: accId, to: toAcc, ...(subId != null ? { toSub: subId } : {}), value: cents, desc: 'Sobra do plano', cat: 'Transferência', plGrp: groupId, plKey: key });
 }

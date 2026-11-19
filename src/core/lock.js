@@ -23,7 +23,7 @@ export async function checkPin(s, pin) {
 }
 export async function clearPin(s, pin) {
   if (!(await checkPin(s, pin))) throw new Error('Senha atual incorreta.');
-  const r = structuredClone(s); r.prefs.pin = null; r.prefs.lock = null; return r;
+  const r = structuredClone(s); r.prefs.pin = null; r.prefs.lock = null; r.prefs.bio = null; return r;
 }
 
 // Limite de tentativas: a partir do 5º erro seguido, espera 30 s, depois dobra a cada erro (máximo 15 min).

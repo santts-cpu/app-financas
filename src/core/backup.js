@@ -4,7 +4,7 @@ import { fmtDate } from './dates.js';
 const APP = 'financas-junior', VERSION = 1;
 
 // O arquivo de backup nunca leva a senha do aparelho.
-export const makeBackup = (s, nowIso) => ({ app: APP, version: VERSION, savedAt: nowIso, data: { ...s, prefs: { ...s.prefs, pin: null, lock: null } } });
+export const makeBackup = (s, nowIso) => ({ app: APP, version: VERSION, savedAt: nowIso, data: { ...s, prefs: { ...s.prefs, pin: null, lock: null, bio: null } } });
 
 const MAX_FILE = 30 * 1024 * 1024, MAX_STR = 2000, MAX_NODES = 2_000_000, BAD_KEYS = ['__proto__', 'constructor', 'prototype'];
 // Confere o arquivo inteiro: sem chaves perigosas, textos de tamanho razoável, profundidade limitada.
@@ -31,7 +31,7 @@ export function parseBackup(text) {
   if (!d || !Array.isArray(d.tx) || !Array.isArray(d.accounts)) return { ok: false, error: 'O backup está incompleto.' };
   if (!deepOk(d)) return { ok: false, error: 'O backup tem textos ou dados fora do normal.' };
   const isId = x => Number.isInteger(x) && x >= 0, optNum = x => x == null || Number.isFinite(x), optStr = x => x == null || typeof x === 'string';
-  if (!d.accounts.every(a => a && isId(a.id) && typeof a.name === 'string' && (a.subs == null || (Array.isArray(a.subs) && a.subs.every(x => x && isId(x.id) && typeof x.name === 'string'))))) return { ok: false, error: 'O backup tem contas inválidas.' };
+  if (!d.accounts.every(a => a && isId(a.id) && typeof a.name === 'string' && (a.subs == null || (Array.isArray(a.subs) && a.subs.every(x => x && isId(x.id) && typeof x.name === 'string'))) && (a.moves == null || (Array.isArray(a.moves) && a.moves.every(m => m && Number.isFinite(m.value) && typeof m.date === 'string' && typeof m.fromName === 'string' && typeof m.toName === 'string'))))) return { ok: false, error: 'O backup tem contas inválidas.' };
   for (const k of ['cards', 'cats', 'metas', 'assin', 'favs']) if (d[k] != null && !Array.isArray(d[k])) return { ok: false, error: 'O backup está incompleto.' };
   if (d.prefs != null && (typeof d.prefs !== 'object' || Array.isArray(d.prefs))) return { ok: false, error: 'O backup tem ajustes inválidos.' };
   const iso = x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) && !Number.isNaN(Date.parse(x)) && new Date(x).toISOString().slice(0, 10) === x;
@@ -47,10 +47,10 @@ export function restore(s, parsed) {
   if (!parsed?.ok) throw new Error('Backup inválido: nada foi alterado.');
   const base = initialState(), d = Object.fromEntries(Object.entries(parsed.data).filter(([k]) => k in base));
   // A senha é do aparelho: restaurar nunca troca nem apaga a senha atual.
-  return { ...base, ...d, prefs: { ...base.prefs, ...d.prefs, pin: s?.prefs?.pin ?? null, lock: s?.prefs?.lock ?? null }, meta: { ...base.meta, ...d.meta, lastBackup: parsed.savedAt } };
+  return { ...base, ...d, prefs: { ...base.prefs, ...d.prefs, pin: s?.prefs?.pin ?? null, lock: s?.prefs?.lock ?? null, bio: s?.prefs?.bio ?? null }, meta: { ...base.meta, ...d.meta, lastBackup: parsed.savedAt } };
 }
 
-export function markBackup(s, nowIso) { const r = structuredClone(s); r.meta.lastBackup = nowIso; return r; }
+export function markBackup(s, nowIso) { const r = structuredClone(s); r.meta.lastBackup = nowIso; r.meta.history = [nowIso, ...(r.meta.history || [])].slice(0, 8); return r; }
 export function backupDue(s, nowIso) {
   const last = s.meta.lastBackup;
   return !last || (Date.parse(nowIso) - Date.parse(last)) / 86400000 > 7;

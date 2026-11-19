@@ -19,6 +19,13 @@ export function renameCat(s, from, to) {
   if (has(s, to)) throw new Error('Já existe uma categoria com esse nome.');
   const r = clone(s); r.cats.find(c => c.name === from).name = to; remap(r, from, to); return r;
 }
+export function editCat(s, name, { color, subs }) {
+  const r = clone(s), c = r.cats.find(x => x.name === name);
+  if (color) c.color = color;
+  if (subs) { const seen = new Set(); c.subs = subs.map(x => x.trim()).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())); }
+  return r;
+}
+export function unarchiveCat(s, name) { const r = clone(s); r.cats.find(c => c.name === name).arch = false; return r; }
 export function archiveCat(s, name) { const r = clone(s); r.cats.find(c => c.name === name).arch = true; return r; }
 
 export function deleteCat(s, name, destName) {

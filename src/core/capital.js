@@ -69,3 +69,18 @@ export function setClassMetas(s, map) {
   if (sum !== 100) throw new Error(`As metas precisam somar 100% (hoje somam ${sum}%).`);
   return r;
 }
+
+// Tipos prontos: preenchem nome e classe ao adicionar um ativo digitado.
+export const ASSET_TYPES = [['Tesouro Selic', 'Renda fixa'], ['Tesouro IPCA+', 'Renda fixa'], ['CDB', 'Renda fixa'], ['LCI/LCA', 'Renda fixa'], ['Fundo', 'Fundos'], ['FIIs', 'FIIs'], ['Ações', 'Ações'], ['ETF', 'Ações'], ['Cripto', 'Cripto'], ['Previdência', 'Previdência'], ['Outro', 'Outros']];
+
+export function editAsset(s, id, { name, cls, loc, value }) {
+  const r = clone(s), i = r.cap.items.find(x => x.id === id);
+  if (!i || i.link) throw new Error('Este item acompanha uma conta: só a classe pode mudar.');
+  if (cls) ensureClass(r, cls);
+  Object.assign(i, { ...(name ? { n: name } : {}), ...(cls ? { cls } : {}), ...(loc ? { loc } : {}), ...(value != null ? { v: value } : {}) });
+  return r;
+}
+export function setItemClass(s, id, cls) {
+  const r = clone(s); ensureClass(r, cls); r.cap.items.find(x => x.id === id).cls = cls; return r;
+}
+export function removeAsset(s, id) { const r = clone(s); r.cap.items = r.cap.items.filter(i => i.id !== id); return r; }

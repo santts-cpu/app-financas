@@ -6,8 +6,8 @@ const acct = (s, id) => { const a = s.accounts.find(x => x.id === id); if (!a) t
 export function addAccount(s, { name, initial = 0 }) {
   const r = clone(s); r.accounts.push({ id: nextId(r), name, initial, subs: [] }); return r;
 }
-export function addSub(s, accId, { name, value }) {
-  const r = clone(s); acct(r, accId).subs.push({ id: nextId(r), name, value }); return r;
+export function addSub(s, accId, { name, value, color }) {
+  const r = clone(s); acct(r, accId).subs.push({ id: nextId(r), name, value, ...(color ? { color } : {}) }); return r;
 }
 export function editSub(s, accId, subId, patch) {
   const r = clone(s), sub = acct(r, accId).subs.find(x => x.id === subId);
@@ -18,8 +18,22 @@ export function setSubValue(s, accId, subId, desired) {
   const sub = s.accounts.find(a => a.id === accId).subs.find(x => x.id === subId);
   return editSub(s, accId, subId, { value: sub.value + (desired - shown) });
 }
+// Excluir: o valor volta ao Livre (a subconta some do cálculo) e os lançamentos dela passam para o Livre.
 export function delSub(s, accId, subId) {
-  const r = clone(s), a = acct(r, accId); a.subs = a.subs.filter(x => x.id !== subId); return r;
+  const r = clone(s), a = acct(r, accId); a.subs = a.subs.filter(x => x.id !== subId);
+  for (const t of r.tx) { if (t.acc === accId && t.sub === subId) delete t.sub; if (t.from === accId && t.fromSub === subId) delete t.fromSub; if (t.to === accId && t.toSub === subId) delete t.toSub; }
+  return r;
+}
+export function moveAccount(s, accId, dir) {
+  const r = clone(s), i = r.accounts.findIndex(x => x.id === accId), j = i + dir;
+  if (i < 0 || j < 0 || j >= r.accounts.length) return r;
+  [r.accounts[i], r.accounts[j]] = [r.accounts[j], r.accounts[i]]; return r;
+}
+// Extrato de uma conta num mês. sub: undefined = todas, 'livre' = sem subconta, id = só aquela subconta.
+export function accountStatement(s, accId, key, sub) {
+  const mine = t => (t.type === 't' ? [[t.from, t.fromSub], [t.to, t.toSub]].filter(([a]) => a === accId).map(x => x[1]) : t.acc === accId ? [t.sub] : []);
+  return s.tx.filter(t => t.date.startsWith(key) && mine(t).length && (sub == null || mine(t).some(x => (sub === 'livre' ? x == null : x === sub))))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
 }
 
 // Efeito de um lançamento pago. Despesa subtrai, receita soma, ajuste ('a') soma o valor com sinal.
@@ -42,10 +56,11 @@ export function accountView(s, accId) {
   return { total, livre: total - subs.reduce((n, x) => n + x.value, 0), subs };
 }
 
-export function transferBetweenSubs(s, accId, from, to, cents) {
+export function transferBetweenSubs(s, accId, from, to, cents, date = new Date().toISOString().slice(0, 10)) {
   const v = accountView(s, accId);
   if (from !== 'livre' && v.subs.find(x => x.id === from).value < cents) throw new Error('Valor maior que o da subconta');
-  const r = clone(s), a = acct(r, accId);
+  const r = clone(s), a = acct(r, accId), nm = x => (x === 'livre' ? 'Livre' : a.subs.find(y => y.id === x).name);
+  (a.moves ||= []).push({ id: nextId(r), from, to, value: cents, date, fromName: nm(from), toName: nm(to) });
   if (from !== 'livre') a.subs.find(x => x.id === from).value -= cents;
   if (to !== 'livre') a.subs.find(x => x.id === to).value += cents;
   return r;
