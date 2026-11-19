@@ -1,5 +1,6 @@
 import { load, save as persist, requestPersist, initialState } from './store/db.js';
 import { monthKey, addMonths } from './core/dates.js';
+import { checkBio } from './core/bio.js';
 import { hasPin, checkPin, lockWait, registerFail, registerOk } from './core/lock.js';
 import { generateMonth } from './core/subs.js';
 import { backupDue } from './core/backup.js';
@@ -26,7 +27,7 @@ export function createApp({ root, state, save = async () => {}, today = isoToday
   const ctx = {
     get s() { return app.s; }, get ui() { return app.ui; }, today,
     set(next) { app.s = next; Promise.resolve(save(next)).then(() => { if (app.ui.saveError) { app.ui.saveError = false; render(); } }, () => { app.ui.saveError = true; render(); }); render(); },
-    go(screen, params = {}) { app.ui.screen = screen; app.ui.params = params; app.ui.sheet = null; render(); },
+    go(screen, params = {}) { app.ui.reorder = false; app.ui.screen = screen; app.ui.params = params; app.ui.sheet = null; render(); },
     openSheet(k, d = {}) { app.ui.sheet = { k, d }; render(); },
     closeSheet() { app.ui.sheet = null; render(); },
     toast(msg) { app.ui.toast = msg; render(); setTimeout(() => { if (app.ui.toast === msg) { app.ui.toast = null; render(); } }, 3500); },
@@ -37,7 +38,7 @@ export function createApp({ root, state, save = async () => {}, today = isoToday
     return `<nav class="bar" aria-label="Abas">${ctx.s.bar.map(id => `<button class="tab ${app.ui.screen === id ? 'on' : ''}" data-act="go" data-to="${id}" aria-label="${NAV[id][0]}">${ico(id, app.ui.screen === id ? '#fff' : '#4A5A68', 22)}${NAV[id][1]}</button>`).join('')}</nav>`;
   }
   function lockView() {
-    return `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:32px"><h1>Digite a senha</h1><input id="pin" type="password" inputmode="numeric" maxlength="4" aria-label="Senha de 4 números" style="font-size:28px;text-align:center;letter-spacing:12px"><button class="pri" data-act="unlock">Entrar</button>${app.ui.toast ? `<div class="toast" style="position:static">${esc(app.ui.toast)}</div>` : ''}</div>`;
+    return `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px;padding:32px"><h1>Digite a senha</h1><input id="pin" type="password" inputmode="numeric" maxlength="4" aria-label="Senha de 4 números" style="font-size:28px;text-align:center;letter-spacing:12px"><button class="pri" data-act="unlock">Entrar</button>${app.s.prefs.bio ? '<button class="sec" data-act="unlockBio">Entrar com digital</button>' : ''}${app.ui.toast ? `<div class="toast" style="position:static">${esc(app.ui.toast)}</div>` : ''}</div>`;
   }
   function render() {
     const prev = root.querySelector('.scroll'), top = prev ? prev.scrollTop : 0;
@@ -65,6 +66,10 @@ export function createApp({ root, state, save = async () => {}, today = isoToday
       if (a === 'sheetClose') return ctx.closeSheet();
       if (a === 'rescueBack') { app.ui.screen = 'inicio'; app.ui.sheet = null; return render(); }
       if (a === 'rescueExport') { const u = URL.createObjectURL(new Blob([JSON.stringify(app.s)], { type: 'application/json' })), l = document.createElement('a'); l.href = u; l.download = 'copia-dados-financas.json'; document.body.appendChild(l); l.click(); l.remove(); return; }
+      if (a === 'unlockBio') {
+        if (await checkBio(app.s)) { app.ui.unlocked = true; return render(); }
+        return ctx.toast('Não deu certo. Use a senha.');
+      }
       if (a === 'unlock') {
         const wait = lockWait(app.s, Date.now()); if (wait > 0) return ctx.toast(`Muitas tentativas. Aguarde ${wait} s.`);
         if (await checkPin(app.s, root.querySelector('#pin').value)) { app.ui.unlocked = true; if (app.s.prefs.lock) return ctx.set(registerOk(app.s)); return render(); }
