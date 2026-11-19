@@ -38,3 +38,14 @@ export function payInvoice(s, cardId, key, accId, todayIso) {
   const inv = invoiceFor(s, cardId, key, todayIso);
   return addTx(s, { type: 't', status: 'p', date: todayIso, from: accId, to: null, card: cardId, invoice: key, value: inv.restante, desc: 'Pagamento de fatura', cat: 'Cartão' });
 }
+
+// Lançamento fixo: repete todo mês por 12 meses; o primeiro segue o status escolhido, os demais ficam pendentes.
+export function addRepeat(s, tx, n = 12) {
+  const key = tx.date.slice(0, 7), day = tx.date.slice(8);
+  let r = s;
+  for (let i = 0; i < n; i++) {
+    const k = addMonths(key, i);
+    r = addTx(r, { ...tx, status: i === 0 ? tx.status : 'n', date: `${k}-${pad(Math.min(Number(day), lastDay(k)))}` });
+  }
+  return r;
+}
