@@ -1,7 +1,7 @@
 import { ico, esc, hm, money, head, lab, splitBar, readForm, formSheet, monthStrip, GCOL, pct0, MONTHS } from './components.js';
 import { txRow } from './txrow.js';
 import { fmtDate } from '../core/dates.js';
-import { accountView, addAccount, addSub, editSub, delSub, transferBetweenSubs, adjustBalance, setSubValue, moveAccount, accountStatement } from '../core/ledger.js';
+import { accountView, addAccount, addSubFunded, editSub, delSub, transferBetweenSubs, adjustBalance, fundSub, setLivre, moveAccount, accountStatement } from '../core/ledger.js';
 import { parseMoney } from '../core/money.js';
 
 const COLORS = [['#2B4EFF', 'Azul'], ['#D12F4B', 'Vermelho'], ['#E0A100', 'Amarelo'], ['#2FA97A', 'Verde'], ['#8A5CE0', 'Roxo'], ['#E07A3A', 'Laranja'], ['#3FA7C7', 'Ciano'], ['#B24FB5', 'Rosa']];
@@ -15,7 +15,7 @@ function accCard(ctx, a, i = 0, n = 1, reorder = false) {
     <div style="display:flex;align-items:center;gap:12px"><span style="width:40px;height:40px;border-radius:50%;background:#2B4EFF;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:17px">${esc(a.name.charAt(0).toUpperCase())}</span><button class="btn" data-act="openAcc" data-acc="${a.id}" aria-label="Abrir extrato de ${esc(a.name)}" style="flex:1;justify-content:flex-start;text-align:left;font:inherit;color:#fff;gap:6px"><b style="font-size:16px">${esc(a.name)}</b>${ico('chev', '#A7B6C4', 16, 2.4)}</button>${reorder ? `<button class="btn" data-act="accUp" data-acc="${a.id}" aria-label="Subir ${esc(a.name)}" ${i === 0 ? 'disabled style="opacity:.3"' : ''}>${ico('up', '#fff', 22)}</button><button class="btn" data-act="accDown" data-acc="${a.id}" aria-label="Descer ${esc(a.name)}" ${i === n - 1 ? 'disabled style="opacity:.3"' : ''}>${ico('down', '#fff', 22)}</button>` : ''}</div>
     <div class="big" style="font-size:30px;line-height:34px">${hm(ctx, v.total)}</div>
     ${splitBar(parts)}
-    <div style="display:flex;flex-direction:column">${parts.map(p => `<div style="display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid rgba(255,255,255,.12)"><span style="width:12px;height:12px;border-radius:4px;background:${p.col}"></span><span style="flex:1;font-size:15px">${esc(p.n)}</span><span style="text-align:right;font-size:15px">${hm(ctx, p.val)} <span style="font-size:12px;color:#A7B6C4">${pct0(p.val / tot * 100)}%</span></span>${p.id ? `<button class="btn" data-act="subEdit" data-acc="${a.id}" data-id="${p.id}" aria-label="Editar ${esc(p.n)}" style="color:#AEBBFF">${ico('pencil', '#AEBBFF', 18)}</button>` : ''}</div>`).join('')}</div>
+    <div style="display:flex;flex-direction:column">${parts.map(p => `<div style="display:flex;align-items:center;gap:10px;min-height:44px;border-top:1px solid rgba(255,255,255,.12)"><span style="width:12px;height:12px;border-radius:4px;background:${p.col}"></span><span style="flex:1;font-size:15px">${esc(p.n)}</span><span style="text-align:right;font-size:15px">${hm(ctx, p.val)} <span style="font-size:12px;color:#A7B6C4">${pct0(p.val / tot * 100)}%</span></span>${p.id ? `<button class="btn" data-act="subEdit" data-acc="${a.id}" data-id="${p.id}" aria-label="Editar ${esc(p.n)}" style="color:#AEBBFF">${ico('pencil', '#AEBBFF', 18)}</button>` : `<button class="btn" data-act="livreEdit" data-acc="${a.id}" aria-label="Editar Livre" style="color:#AEBBFF">${ico('pencil', '#AEBBFF', 18)}</button>`}</div>`).join('')}</div>
     <div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn link" data-act="subNew" data-acc="${a.id}" style="color:#AEBBFF">+ Subconta</button><button class="btn link" data-act="subMove" data-acc="${a.id}" style="color:#AEBBFF">Transferir</button><button class="btn link" data-act="adjust" data-acc="${a.id}" style="color:#AEBBFF">Ajustar saldo</button></div></div>`;
 }
 
@@ -53,12 +53,15 @@ const accOpts = a => [['livre', 'Livre'], ...a.subs.map(x => [x.id, x.name])];
 export const sheets = {
   accNew: () => formSheet('Nova conta', [{ id: 'name', label: 'Nome' }, { id: 'initial', label: 'Saldo inicial', type: 'money', placeholder: '0,00' }], 'accSave', 'Criar conta'),
   subForm(ctx, d) {
-    return formSheet(d.id ? 'Editar subconta' : 'Nova subconta', [{ id: 'name', label: 'Nome', value: d.name }, { id: 'value', label: 'Valor reservado', type: 'money', value: d.value }, { id: 'color', label: 'Cor', type: 'color', value: d.color || COLORS[0][0] }], 'subSave', 'Salvar', d.id ? `<button class="sec" data-act="subDel" style="color:#A11D3A">Excluir subconta</button>` : '');
+    return formSheet(d.id ? 'Editar subconta' : 'Nova subconta', [{ id: 'name', label: 'Nome', value: d.name }, { id: 'value', label: 'Valor da subconta', type: 'money', value: d.value }, { id: 'color', label: 'Cor', type: 'color', value: d.color || COLORS[0][0] }], 'subSave', 'Salvar', d.id ? `<button class="sec" data-act="subDel" style="color:#A11D3A">Excluir subconta</button>` : '');
   },
   subDelAsk: (ctx, d) => `<div class="sheet-body" style="padding:20px;display:flex;flex-direction:column;gap:12px"><h2 style="font-size:20px">Excluir a subconta ${esc(d.name)}?</h2><div style="font-size:14px;color:#4A5A68">O valor reservado volta para o Livre da conta e os lançamentos dela passam para o Livre. O saldo total não muda.</div><button class="pri" data-act="subDelOk" style="background:#C2253F">Excluir subconta</button><button class="sec" data-act="sheetClose">Cancelar</button></div>`,
   subMove(ctx, d) {
     const a = ctx.s.accounts.find(x => x.id === d.acc);
     return formSheet('Transferir entre subcontas', [{ id: 'from', label: 'De', type: 'select', options: accOpts(a) }, { id: 'to', label: 'Para', type: 'select', value: a.subs[0]?.id, options: accOpts(a) }, { id: 'value', label: 'Valor', type: 'money' }], 'subMoveSave', 'Transferir');
+  },
+  livreForm(ctx, d) {
+    return formSheet('Editar Livre', [{ id: 'value', label: 'Valor Livre', type: 'money', value: (accountView(ctx.s, d.acc).livre / 100).toFixed(2).replace('.', ',') }], 'livreSave', 'Salvar');
   },
   adjust(ctx, d) {
     return formSheet('Ajustar saldo', [{ id: 'real', label: 'Saldo real da conta', type: 'money', value: (accountView(ctx.s, d.acc).total / 100).toFixed(2).replace('.', ',') }], 'adjustSave', 'Ajustar');
@@ -86,7 +89,7 @@ export const acts = {
   subSave(ctx, d, root) {
     const sh = ctx.ui.sheet.d, v = readForm(root, [{ id: 'name' }, { id: 'value' }, { id: 'color' }]), value = parseMoney(v.value || '0');
     if (!v.name.trim() || value === null) throw new Error('Informe nome e valor.');
-    ctx.ui.sheet = null; ctx.set(sh.id ? editSub(setSubValue(ctx.s, sh.acc, sh.id, value), sh.acc, sh.id, { name: v.name.trim(), color: v.color }) : addSub(ctx.s, sh.acc, { name: v.name.trim(), value, color: v.color }));
+    ctx.ui.sheet = null; ctx.set(sh.id ? editSub(fundSub(ctx.s, sh.acc, sh.id, value), sh.acc, sh.id, { name: v.name.trim(), color: v.color }) : addSubFunded(ctx.s, sh.acc, { name: v.name.trim(), value, color: v.color }));
   },
   subDel(ctx) { const sh = ctx.ui.sheet.d; ctx.openSheet('subDelAsk', sh); },
   subDelOk(ctx) { const sh = ctx.ui.sheet.d; ctx.ui.sheet = null; ctx.set(delSub(ctx.s, sh.acc, sh.id)); ctx.toast('Subconta excluída.'); },
@@ -99,6 +102,12 @@ export const acts = {
     const next = transferBetweenSubs(ctx.s, acc, p(v.from), p(v.to), value, ctx.today);
     ctx.ui.sheet = null; ctx.set(next);
     if (accountView(next, acc).livre < 0) ctx.toast('Atenção: o Livre ficou negativo.');
+  },
+  livreEdit(ctx, d) { ctx.openSheet('livreForm', { acc: Number(d.acc) }); },
+  livreSave(ctx, d, root) {
+    const v = parseMoney(readForm(root, [{ id: 'value' }]).value || '');
+    if (v === null) throw new Error('Informe o valor.');
+    const acc = ctx.ui.sheet.d.acc; ctx.ui.sheet = null; ctx.set(setLivre(ctx.s, acc, v));
   },
   adjust(ctx, d) { ctx.openSheet('adjust', { acc: Number(d.acc) }); },
   adjustSave(ctx, d, root) {
