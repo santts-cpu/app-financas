@@ -72,11 +72,11 @@ export const acts = {
   },
   csvExport(ctx) { download('lancamentos.csv', '﻿' + toCsv(ctx.s), 'text/csv'); },
   pinOpen(ctx) { ctx.openSheet('pin'); },
-  pinSave(ctx, d, root) {
-    let s = ctx.s; if (hasPin(s)) s = clearPin(s, root.querySelector('#f_old').value);
-    s = setPin(s, root.querySelector('#f_pin').value); ctx.ui.sheet = null; ctx.set(s); ctx.toast('Senha salva.');
+  async pinSave(ctx, d, root) {
+    let s = ctx.s; if (hasPin(s)) s = await clearPin(s, root.querySelector('#f_old').value);
+    s = await setPin(s, root.querySelector('#f_pin').value); ctx.ui.sheet = null; ctx.set(s); ctx.toast('Senha salva.');
   },
-  pinRemove(ctx, d, root) { const s = clearPin(ctx.s, root.querySelector('#f_old').value); ctx.ui.sheet = null; ctx.set(s); },
+  async pinRemove(ctx, d, root) { const s = await clearPin(ctx.s, root.querySelector('#f_old').value); ctx.ui.sheet = null; ctx.set(s); },
   eraseOpen(ctx) { ctx.openSheet('erase'); },
   eraseDo(ctx, d, root) { const s = eraseAll(root.querySelector('#f_confirm').value); ctx.ui.sheet = null; ctx.ui.screen = 'inicio'; ctx.set(s); },
 };
