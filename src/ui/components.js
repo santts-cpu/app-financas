@@ -31,6 +31,7 @@ export const head = (title, sub = '', back = '') => `<div class="head" style="pa
 export const field = f => {
   const id = `f_${f.id}`, v = f.value ?? '';
   if (f.type === 'select') return `<label>${f.label}<select id="${id}" ${f.change ? `data-change="${f.change}"` : ''}>${f.options.map(([val, l]) => `<option value="${esc(val)}" ${String(val) === String(v) ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`;
+  if (f.type === 'color') return `<label>${f.label}<input id="${id}" type="color" value="${/^#[0-9a-fA-F]{6}$/.test(v) ? v : '#2B4EFF'}" style="width:100%;height:48px;padding:4px"></label>`;
   return `<label>${f.label}<input id="${id}" type="${f.type || 'text'}" value="${esc(v)}" placeholder="${esc(f.placeholder || '')}" inputmode="${f.type === 'money' ? 'decimal' : ''}"></label>`;
 };
 export const formSheet = (title, fields, saveAct, saveLabel = 'Salvar', extra = '') =>
