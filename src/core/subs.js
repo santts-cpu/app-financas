@@ -40,3 +40,7 @@ export function useFavorite(s, favId, todayIso) {
   const { id, ...rest } = f;
   return addTx(s, { ...rest, type: f.type || 'e', status: 'p', date: todayIso });
 }
+
+export function addFavorite(s, fav) {
+  const r = structuredClone(s); r.favs.push({ ...fav, id: r.meta.nid++ }); return r;
+}
