@@ -1,5 +1,5 @@
 // Mude o número da versão sempre que publicar uma atualização.
-const CACHE = 'financas-v6';
+const CACHE = 'financas-v7';
 const FILES = [
   './',
   './index.html',
