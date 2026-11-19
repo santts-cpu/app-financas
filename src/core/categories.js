@@ -1,9 +1,12 @@
 import { nextId } from './ledger.js';
 const clone = s => structuredClone(s);
 const has = (s, name) => s.cats.some(c => c.name === name);
+export const isHex = c => typeof c === 'string' && /^#[0-9a-fA-F]{6}$/.test(c);
+const needHex = c => { if (!isHex(c)) throw new Error('Escolha uma cor válida.'); };
 
 export function addCat(s, { name, type, color, subs = [] }) {
   if (has(s, name)) throw new Error('Já existe uma categoria com esse nome.');
+  needHex(color);
   const r = clone(s); r.cats.push({ id: nextId(r), name, type, color, subs, arch: false }); return r;
 }
 export const listEditable = (s, type) => s.cats.filter(c => c.type === type && !c.system);
@@ -20,6 +23,7 @@ export function renameCat(s, from, to) {
   const r = clone(s); r.cats.find(c => c.name === from).name = to; remap(r, from, to); return r;
 }
 export function editCat(s, name, { color, subs }) {
+  if (color) needHex(color);
   const r = clone(s), c = r.cats.find(x => x.name === name);
   if (color) c.color = color;
   if (subs) { const seen = new Set(); c.subs = subs.map(x => x.trim()).filter(x => x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase())); }
